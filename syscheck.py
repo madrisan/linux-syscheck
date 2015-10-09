@@ -26,19 +26,27 @@ def _kernel_version():
 
     return (((majVersion) << 16) + ((minVersion) << 8) + (patchVersion))
 
-def _readfile(filename):
+def _readfile(filename, abort_on_error=True, header=False):
     if not os.path.isfile(filename):
-        die(1, 'No such file: ' + filename)
+        if abort_on_error:
+            die(1, 'No such file: ' + filename)
+        else:
+            warning('No such file: ' + filename)
         return None
+
     fd = open(filename, 'r')
     try:
-        content = fd.readlines()
+        if header:
+            content = fd.readlines()[1:]
+        else:
+            content = fd.readlines()
     except:
         die(1, 'Error opening the file ' + filename)
     return content
 
 def _cpu_count_logical():
     """Return the number of logical CPUs in the system."""
+
     try:
         return os.sysconf("SC_NPROCESSORS_ONLN")
     except ValueError:
@@ -115,6 +123,27 @@ def check_memory():
 
     return (MemTotal, MemAvailable, MemoryUsagePerc)
 
+def check_swap():
+    """Return Total and Used Swap in bytes and percent Utilization"""
+
+    # example:
+    #   Filename     Type         Size    Used    Priority
+    #   /dev/dm-0    partition    8388604 11512   -1
+    swapinfo = _readfile('/proc/swaps', abort_on_error=False, header=True)
+
+    SwapTotal = SwapUsed = SwapUsedPerc = 0
+    if swapinfo:
+        for line in swapinfo:
+            cols = line.rstrip().split()
+            if not cols[0].startswith('/'):
+                continue
+            SwapTotal += int(cols[2])
+            SwapUsed += int(cols[3])
+
+        SwapUsedPerc = SwapUsed * 100 / SwapTotal
+
+    return (SwapTotal, SwapUsed, SwapUsedPerc)
+
 def check_uptime():
     uptime = _readfile('/proc/uptime')
     uptime_secs = float(uptime[0].split()[0])
@@ -131,6 +160,10 @@ def die(exitcode, message):
     sys.stderr.write('pyoocs: Fatal error: %s\n' % message)
     sys.exit(exitcode)
 
+def warning(message):
+    "Print a warning message"
+    sys.stderr.write('Warning: %s\n' % message)
+
 def main():
     # CSVOUTPUT=1 ./syscheck.py --> Output in CSV Format
     EnvCSVOutput = os.environ.get('CSVOUTPUT', '')
@@ -143,20 +176,26 @@ def main():
     # Memory utilization
     MemTotal, MemAvailable, MemoryUsagePerc = check_memory()
     MemTotal_Mb = MemTotal / 1024
+    # Swap utilization
+    SwapTotal, SwapUsed, SwapUsedPerc = check_swap()
+    SwapTotal_Mb = SwapTotal / 1024
     # System Uptime
     SystemUptime, UpDays, UpHours, UpMinutes = check_uptime()
 
     if EnvCSVOutput:
         print "Hostname,FQDN,CPUMzTotal,CPUConsumption,CPUs,\
-MemTotal(Mb),MemoryUsagePerc,UptimeDays\n\
-%s,%s,%d,%.2f,%d,%d,%.2f,%s" % (
+MemTotal(Mb),MemoryUsagePerc,\
+SwapTotal(Mb),SwapUsagePerc,UptimeDays\n\
+%s,%s,%d,%.2f,%d,%d,%.2f,%d,%.2f,%s" % (
             Hostname, FQDN, CPUMzTotal, CPUConsumption, CPUs,
-            MemTotal_Mb, MemoryUsagePerc, UpDays)
+            MemTotal_Mb, MemoryUsagePerc,
+            SwapTotal_Mb, SwapUsedPerc, UpDays)
     else:
         print "Hostname        : %s (%s)" % (Hostname, FQDN)
         print "CPU Tot/Used    : %dMHz/%.2f%% (%dCPU(s))" %(
             CPUMzTotal, CPUConsumption, CPUs)
         print "Memory Tot/Used : %dMb/%.2f%%" % (MemTotal_Mb, MemoryUsagePerc)
+        print "Swap Tot/Used   : %dMb/%.2f%%" % (SwapTotal_Mb, SwapUsedPerc)
         print "System uptime   : " + SystemUptime
 
 if __name__ == '__main__':
