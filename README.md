@@ -9,6 +9,7 @@ $> ./syscheck.py
 Hostname        : myserver (myserver.mydomain.com)
 CPU Tot/Used    : 26887MHz/58.44% (8CPU(s))
 Memory Tot/Used : 16001Mb/50.95%
+Swap Tot/Used   : 8191Mb/0.14%
 System uptime   : 5 days, 2:11:17.950000
 ```
 
@@ -16,8 +17,8 @@ or
 
 ```sh
 $ CSVOUTPUT=1 ./syscheck.py 
-Hostname,FQDN,CPUMzTotal,CPUConsumption,CPUs,MemTotal(Mb),MemoryUsagePerc,UptimeDays
-myserver,myserver.mydomain.com,26783,58.10,8,16001,52.90,5
+Hostname,FQDN,CPUMzTotal,CPUConsumption,CPUs,MemTotal(Mb),MemoryUsagePerc,SwapTotal(Mb),SwapUsagePerc,UptimeDays
+myserver,myserver.mydomain.com,26783,58.10,8,16001,52.90,8191,0.14,5
 ```
 
 The CPU utilization is calculated by looking at the kernel informations provided in `/proc/stat`.
