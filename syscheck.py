@@ -89,7 +89,7 @@ def check_cpu():
     return (CPUMzTotal, CPUUtilization, CPUNumber)
 
 def check_memory():
-    """Return Total Memory, Available Memory and percent Utilization"""
+    """Return Total Memory, Memory Used and percent Utilization"""
 
     MemAvailable = None
 
@@ -119,9 +119,10 @@ def check_memory():
 
         if MemAvailable < 0: MemAvailable = 0
 
-    MemoryUsagePerc = 100 - (MemAvailable * 100 / MemTotal)
+    MemUsage = MemTotal - MemAvailable
+    MemUsagePerc = 100 - (MemAvailable * 100 / MemTotal)
 
-    return (MemTotal, MemAvailable, MemoryUsagePerc)
+    return (MemTotal/1024, MemUsage/1024, MemUsagePerc)
 
 def check_swap():
     """Return Total and Used Swap in bytes and percent Utilization"""
@@ -142,7 +143,7 @@ def check_swap():
 
         SwapUsedPerc = SwapUsed * 100 / SwapTotal
 
-    return (SwapTotal, SwapUsed, SwapUsedPerc)
+    return (SwapTotal/1024, SwapUsed/1024, SwapUsedPerc)
 
 def check_uptime():
     uptime = _readfile('/proc/uptime')
@@ -175,10 +176,8 @@ def main():
     CPUMzTotal, CPUConsumption, CPUs = check_cpu()
     # Memory utilization
     MemTotal, MemAvailable, MemoryUsagePerc = check_memory()
-    MemTotal_Mb = MemTotal / 1024
     # Swap utilization
     SwapTotal, SwapUsed, SwapUsedPerc = check_swap()
-    SwapTotal_Mb = SwapTotal / 1024
     # System Uptime
     SystemUptime, UpDays, UpHours, UpMinutes = check_uptime()
 
@@ -188,14 +187,14 @@ MemTotal(Mb),MemoryUsagePerc,\
 SwapTotal(Mb),SwapUsagePerc,UptimeDays\n\
 %s,%s,%d,%.2f,%d,%d,%.2f,%d,%.2f,%s" % (
             Hostname, FQDN, CPUMzTotal, CPUConsumption, CPUs,
-            MemTotal_Mb, MemoryUsagePerc,
-            SwapTotal_Mb, SwapUsedPerc, UpDays)
+            MemTotal, MemoryUsagePerc,
+            SwapTotal, SwapUsedPerc, UpDays)
     else:
         print "Hostname        : %s (%s)" % (Hostname, FQDN)
         print "CPU Tot/Used    : %dMHz/%.2f%% (%dCPU(s))" %(
             CPUMzTotal, CPUConsumption, CPUs)
-        print "Memory Tot/Used : %dMb/%.2f%%" % (MemTotal_Mb, MemoryUsagePerc)
-        print "Swap Tot/Used   : %dMb/%.2f%%" % (SwapTotal_Mb, SwapUsedPerc)
+        print "Memory Tot/Used : %dMb/%.2f%%" % (MemTotal, MemoryUsagePerc)
+        print "Swap Tot/Used   : %dMb/%.2f%%" % (SwapTotal, SwapUsedPerc)
         print "System uptime   : " + SystemUptime
 
 if __name__ == '__main__':
