@@ -1,6 +1,6 @@
 # syscheck
 
-A simple Python tool that displays CPU and memory utilization.
+A simple Python tool that displays CPU, swap and memory utilization on Linux.
 
 Usage:
 
