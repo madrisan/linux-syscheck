@@ -44,6 +44,13 @@ def _readfile(filename, abort_on_error=True, header=False):
         die(1, 'Error opening the file ' + filename)
     return content
 
+def _perc(value, ratio, complement=False):
+    percentage = 100 * value / ratio
+    if complement:
+        return 100 - percentage
+    else:
+        return percentage
+
 def _cpu_count_logical():
     """Return the number of logical CPUs in the system."""
 
@@ -83,7 +90,7 @@ def check_cpu():
         SystemTot = Sys + IRQ + SoftIRQ
         Ratio = UserTot + SystemTot + Idle + IOWait + Steal
 
-    CPUUtilization = (100 - (100*Idle/Ratio))
+    CPUUtilization = _perc(Idle, Ratio, complement=True)
     CPUNumber = _cpu_count_logical()
 
     return (CPUMzTotal, CPUUtilization, CPUNumber)
@@ -120,7 +127,7 @@ def check_memory():
         if MemAvailable < 0: MemAvailable = 0
 
     MemUsage = MemTotal - MemAvailable
-    MemUsagePerc = 100 - (MemAvailable * 100 / MemTotal)
+    MemUsagePerc = _perc(MemAvailable, MemTotal, complement=True)
 
     return (MemTotal/1024, MemUsage/1024, MemUsagePerc)
 
@@ -141,7 +148,7 @@ def check_swap():
             SwapTotal += int(cols[2])
             SwapUsed += int(cols[3])
 
-        SwapUsedPerc = SwapUsed * 100 / SwapTotal
+        SwapUsedPerc = _perc(SwapUsed, SwapTotal)
 
     return (SwapTotal/1024, SwapUsed/1024, SwapUsedPerc)
 
