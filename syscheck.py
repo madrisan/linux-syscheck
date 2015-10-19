@@ -99,16 +99,22 @@ def check_memory():
     """Return Total Memory, Memory Used and percent Utilization"""
 
     MemAvailable = None
+    MemHugePagesTotal = MemAnonHugePages = 0
+    MemHugePageSize = 0
 
     meminfo = _readfile('/proc/meminfo')
     for line in meminfo:
         cols = line.split()
-        if cols[0] == 'Active(file):'    : MemActiveFile = int(cols[1])
-        elif cols[0] == 'MemAvailable:'  : MemAvailable = int(cols[1])
-        elif cols[0] == 'MemFree:'       : MemFree = int(cols[1])
-        elif cols[0] == 'Inactive(file):': MemInactiveFile = int(cols[1])
-        elif cols[0] == 'MemTotal:'      : MemTotal = int(cols[1])
-        elif cols[0] == 'SReclaimable:'  : MemSlabReclaimable = int(cols[1])
+        if cols[0] == 'Active(file):'     : MemActiveFile = int(cols[1])
+        elif cols[0] == 'MemAvailable:'   : MemAvailable = int(cols[1])
+        elif cols[0] == 'MemFree:'        : MemFree = int(cols[1])
+        elif cols[0] == 'Inactive(file):' : MemInactiveFile = int(cols[1])
+        elif cols[0] == 'MemTotal:'       : MemTotal = int(cols[1])
+        elif cols[0] == 'SReclaimable:'   : MemSlabReclaimable = int(cols[1])
+        elif cols[0] == 'Hugepagesize:'   : MemHugePageSize = int(cols[1])
+        elif cols[0] == 'HugePages_Total:': MemHugePagesTotal = int(cols[1])
+        elif cols[0] == 'HugePages_Free:' : MemHugePagesFree = int(cols[1])
+        elif cols[0] == 'AnonHugePages:'  : MemAnonHugePages = int(cols[1])
 
     if not MemAvailable:
         kernelVersion = _kernel_version()
@@ -129,7 +135,16 @@ def check_memory():
     MemUsage = MemTotal - MemAvailable
     MemUsagePerc = _perc(MemAvailable, MemTotal, complement=True)
 
-    return (MemTotal/1024, MemUsage/1024, MemUsagePerc)
+    if not MemHugePagesTotal:
+        MemHugePagesTotal = MemHugePagesUsage = MemHugePagesUsagePerc = 0
+    else:
+        MemHugePagesUsage = MemHugePagesTotal - MemHugePagesFree
+        MemHugePagesUsagePerc = (
+            _perc(MemHugePagesUsage, MemHugePagesTotal))
+
+    return (MemTotal/1024, MemUsage/1024, MemUsagePerc,
+            MemHugePagesTotal, MemHugePagesUsage, MemHugePagesUsagePerc,
+            MemAnonHugePages/1024, MemHugePageSize)
 
 def check_swap():
     """Return Total and Used Swap in bytes and percent Utilization"""
@@ -179,30 +194,41 @@ def main():
     # Hostname and FQDN
     Hostname = socket.gethostname()
     FQDN = socket.getfqdn()
+
     # CPU utilization
     CPUMzTotal, CPUConsumption, CPUs = check_cpu()
-    # Memory utilization
-    MemTotal, MemAvailable, MemoryUsagePerc = check_memory()
+
+    # Memory and Huge Memory utilization
+    (MemTotal, MemAvailable, MemoryUsagePerc,
+     MemHugePagesTotal, MemHugePagesUsage,
+     MemHugePagesUsagePerc, MemAnonHugePages,
+     MemHugePageSize) = check_memory()
+
     # Swap utilization
     SwapTotal, SwapUsed, SwapUsedPerc = check_swap()
+
     # System Uptime
     SystemUptime, UpDays, UpHours, UpMinutes = check_uptime()
 
     if EnvCSVOutput:
         print "Hostname,FQDN,CPUMzTotal,CPUConsumption,CPUs,\
-MemTotal(Mb),MemoryUsagePerc,\
-SwapTotal(Mb),SwapUsagePerc,UptimeDays\n\
-%s,%s,%d,%.2f,%d,%d,%.2f,%d,%.2f,%s" % (
+MemTotal(Mb),MemoryUsagePerc,HugePagesTotal,HugePagesUsagePerc,\
+AnonHugePages(Mb),SwapTotal(Mb),SwapUsagePerc,UptimeDays\n\
+%s,%s,%d,%.2f,%d,%d,%.2f,%d,%.2f,%d,%d,%.2f,%s" % (
             Hostname, FQDN, CPUMzTotal, CPUConsumption, CPUs,
             MemTotal, MemoryUsagePerc,
+            MemHugePagesTotal, MemHugePagesUsagePerc, MemAnonHugePages,
             SwapTotal, SwapUsedPerc, UpDays)
     else:
-        print "Hostname        : %s (%s)" % (Hostname, FQDN)
-        print "CPU Tot/Used    : %dMHz/%.2f%% (%dCPU(s))" %(
+        print "          Hostname : %s (%s)" % (Hostname, FQDN)
+        print "      CPU Tot/Used : %dMHz/%.2f%% (%dCPU(s))" %(
             CPUMzTotal, CPUConsumption, CPUs)
-        print "Memory Tot/Used : %dMb/%.2f%%" % (MemTotal, MemoryUsagePerc)
-        print "Swap Tot/Used   : %dMb/%.2f%%" % (SwapTotal, SwapUsedPerc)
-        print "System uptime   : " + SystemUptime
+        print "   Memory Tot/Used : %dMb/%.2f%%" % (MemTotal, MemoryUsagePerc)
+        print "HugePages Tot/Used : %d/%.2f%% (HugePageSize: %dKb)" % (
+            MemHugePagesTotal, MemHugePagesUsagePerc, MemHugePageSize)
+        print "     AnonHugePages : %dMb" % MemAnonHugePages
+        print "     Swap Tot/Used : %dMb/%.2f%%" % (SwapTotal, SwapUsedPerc)
+        print "     System uptime : %s" % SystemUptime
 
 if __name__ == '__main__':
     exitcode = 0
