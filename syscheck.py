@@ -107,6 +107,7 @@ def check_memory():
         cols = line.split()
         if cols[0] == 'Active(file):'     : MemActiveFile = int(cols[1])
         elif cols[0] == 'MemAvailable:'   : MemAvailable = int(cols[1])
+        elif cols[0] == 'Cached:'         : MemCached = int(cols[1])
         elif cols[0] == 'MemFree:'        : MemFree = int(cols[1])
         elif cols[0] == 'Inactive(file):' : MemInactiveFile = int(cols[1])
         elif cols[0] == 'MemTotal:'       : MemTotal = int(cols[1])
@@ -132,8 +133,8 @@ def check_memory():
 
         if MemAvailable < 0: MemAvailable = 0
 
-    MemUsage = MemTotal - MemAvailable
-    MemUsagePerc = _perc(MemAvailable, MemTotal, complement=True)
+    MemUsed = MemTotal - MemFree - MemCached
+    MemUsedPerc = _perc(MemAvailable, MemTotal, complement=True)
 
     if not MemHugePagesTotal:
         MemHugePagesTotal = MemHugePagesUsage = MemHugePagesUsagePerc = 0
@@ -142,7 +143,7 @@ def check_memory():
         MemHugePagesUsagePerc = (
             _perc(MemHugePagesUsage, MemHugePagesTotal))
 
-    return (MemTotal/1024, MemUsage/1024, MemUsagePerc,
+    return (MemTotal/1024, MemUsed/1024, MemUsedPerc, MemAvailable/1024,
             MemHugePagesTotal, MemHugePagesUsage, MemHugePagesUsagePerc,
             MemAnonHugePages/1024, MemHugePageSize)
 
@@ -199,7 +200,7 @@ def main():
     CPUMzTotal, CPUConsumption, CPUs = check_cpu()
 
     # Memory and Huge Memory utilization
-    (MemTotal, MemAvailable, MemoryUsagePerc,
+    (MemTotal, MemUsed, MemoryUsedPerc, MemAvailable,
      MemHugePagesTotal, MemHugePagesUsage,
      MemHugePagesUsagePerc, MemAnonHugePages,
      MemHugePageSize) = check_memory()
@@ -212,23 +213,24 @@ def main():
 
     if EnvCSVOutput:
         print "Hostname,FQDN,CPUMzTotal,CPUConsumption,CPUs,\
-MemTotal(Mb),MemoryUsagePerc,HugePagesTotal,HugePagesUsagePerc,\
+MemTotal(Mb),MemoryUsedPerc,MemAvailable,HugePagesTotal,HugePagesUsagePerc,\
 AnonHugePages(Mb),SwapTotal(Mb),SwapUsagePerc,UptimeDays\n\
-%s,%s,%d,%.2f,%d,%d,%.2f,%d,%.2f,%d,%d,%.2f,%s" % (
+%s,%s,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%s" % (
             Hostname, FQDN, CPUMzTotal, CPUConsumption, CPUs,
-            MemTotal, MemoryUsagePerc,
+            MemTotal, MemoryUsedPerc, MemAvailable,
             MemHugePagesTotal, MemHugePagesUsagePerc, MemAnonHugePages,
             SwapTotal, SwapUsedPerc, UpDays)
     else:
-        print "          Hostname : %s (%s)" % (Hostname, FQDN)
-        print "      CPU Tot/Used : %dMHz/%.2f%% (%dCPU(s))" %(
+        print "                 Hostname : %s (%s)" % (Hostname, FQDN)
+        print "             CPU Tot/Used : %dMHz / %.2f%% (%dCPU(s))" %(
             CPUMzTotal, CPUConsumption, CPUs)
-        print "   Memory Tot/Used : %dMb/%.2f%%" % (MemTotal, MemoryUsagePerc)
-        print "HugePages Tot/Used : %d/%.2f%% (HugePageSize: %dKb)" % (
+        print "Memory Tot/Used/Available : %dMb / %.2f%% / %dMb" % (
+            MemTotal, MemoryUsedPerc, MemAvailable)
+        print "       HugePages Tot/Used : %d / %.2f%% (HugePageSize: %dKb)" % (
             MemHugePagesTotal, MemHugePagesUsagePerc, MemHugePageSize)
-        print "     AnonHugePages : %dMb" % MemAnonHugePages
-        print "     Swap Tot/Used : %dMb/%.2f%%" % (SwapTotal, SwapUsedPerc)
-        print "     System uptime : %s" % SystemUptime
+        print "            AnonHugePages : %dMb" % MemAnonHugePages
+        print "            Swap Tot/Used : %dMb / %.2f%%" % (SwapTotal, SwapUsedPerc)
+        print "            System uptime : %s" % SystemUptime
 
 if __name__ == '__main__':
     exitcode = 0
