@@ -11,9 +11,9 @@ from datetime import timedelta
 __author__ = "Davide Madrisan"
 __copyright__ = "Copyright 2015 Davide Madrisan"
 __license__ = "GPLv3"
-__version__ = "2"
+__version__ = "3"
 __email__ = "davide.madrisan.gmail.com"
-__status__ = "Beta"
+__status__ = "stable"
 
 def _kernel_version():
     release = platform.release()
