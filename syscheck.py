@@ -51,6 +51,14 @@ def _perc(value, ratio, complement=False):
     else:
         return percentage
 
+def _sizeof_fmt(num, factor=1024.0, skip=1, suffix='B'):
+    units = ['', 'k','m','g','t']
+    for unit in units[skip:]:
+        if abs(num) < factor:
+            return "%3.1f%s%s" % (num, unit, suffix)
+        num /= factor
+    return "%.1f%s%s" % (num, 'p', suffix)
+
 def _cpu_count_logical():
     """Return the number of logical CPUs in the system."""
 
@@ -143,9 +151,9 @@ def check_memory():
         MemHugePagesUsagePerc = (
             _perc(MemHugePagesUsage, MemHugePagesTotal))
 
-    return (MemTotal/1024, MemUsed/1024, MemUsedPerc, MemAvailable/1024,
+    return (MemTotal, MemUsed, MemUsedPerc, MemAvailable,
             MemHugePagesTotal, MemHugePagesUsage, MemHugePagesUsagePerc,
-            MemAnonHugePages/1024, MemHugePageSize)
+            MemAnonHugePages, MemHugePageSize)
 
 def check_swap():
     """Return Total and Used Swap in bytes and percent Utilization"""
@@ -166,7 +174,7 @@ def check_swap():
 
         SwapUsedPerc = _perc(SwapUsed, SwapTotal)
 
-    return (SwapTotal/1024, SwapUsed/1024, SwapUsedPerc)
+    return (SwapTotal, SwapUsed, SwapUsedPerc)
 
 def check_uptime():
     uptime = _readfile('/proc/uptime')
@@ -212,9 +220,10 @@ def main():
     SystemUptime, UpDays, UpHours, UpMinutes = check_uptime()
 
     if EnvCSVOutput:
-        print "Hostname,FQDN,CPUMzTotal,CPUConsumption,CPUs,\
-MemTotal(Mb),MemoryUsedPerc,MemAvailable,HugePagesTotal,HugePagesUsagePerc,\
-AnonHugePages(Mb),SwapTotal(Mb),SwapUsagePerc,UptimeDays\n\
+        print "Hostname,FQDN,CPU Total (MHz),CPU Consumption,CPUs,\
+Memory Total (kB),Memory Used (%%),Mem Available (kB),\
+Total Huge Pages,HugePages Usage (%%),Anonymous Huge Pages (kB),\
+Total Swap (kB),Swap Usage (%%),Uptime (days)\n\
 %s,%s,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%s" % (
             Hostname, FQDN, CPUMzTotal, CPUConsumption, CPUs,
             MemTotal, MemoryUsedPerc, MemAvailable,
@@ -222,14 +231,17 @@ AnonHugePages(Mb),SwapTotal(Mb),SwapUsagePerc,UptimeDays\n\
             SwapTotal, SwapUsedPerc, UpDays)
     else:
         print "                 Hostname : %s (%s)" % (Hostname, FQDN)
-        print "             CPU Tot/Used : %dMHz / %.2f%% (%dCPU(s))" %(
-            CPUMzTotal, CPUConsumption, CPUs)
-        print "Memory Tot/Used/Available : %dMb / %.2f%% / %dMb" % (
-            MemTotal, MemoryUsedPerc, MemAvailable)
-        print "       HugePages Tot/Used : %d / %.2f%% (HugePageSize: %dKb)" % (
-            MemHugePagesTotal, MemHugePagesUsagePerc, MemHugePageSize)
-        print "            AnonHugePages : %dMb" % MemAnonHugePages
-        print "            Swap Tot/Used : %dMb / %.2f%%" % (SwapTotal, SwapUsedPerc)
+        print "             CPU Tot/Used : %s / %.2f%% (%dCPU(s))" %(
+            _sizeof_fmt(CPUMzTotal, skip=2, suffix='Hz'),
+            CPUConsumption, CPUs)
+        print "Memory Tot/Used/Available : %s / %.2f%% / %s" % (
+            _sizeof_fmt(MemTotal), MemoryUsedPerc, _sizeof_fmt(MemAvailable))
+        print "       HugePages Tot/Used : %d / %.2f%% (HugePageSize: %s)" % (
+            MemHugePagesTotal, MemHugePagesUsagePerc,
+            _sizeof_fmt(MemHugePageSize))
+        print "            AnonHugePages : %s" % _sizeof_fmt(MemAnonHugePages)
+        print "            Swap Tot/Used : %s / %.2f%%" % (
+            _sizeof_fmt(SwapTotal), SwapUsedPerc)
         print "            System uptime : %s" % SystemUptime
 
 if __name__ == '__main__':
