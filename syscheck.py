@@ -222,7 +222,7 @@ def main():
     if EnvCSVOutput:
         print "Hostname,FQDN,CPU Total (MHz),CPU Consumption,CPUs,\
 Memory Total (kB),Memory Used (%%),Mem Available (kB),\
-Total Huge Pages,HugePages Usage (%%),Anonymous Huge Pages (kB),\
+Total Huge Pages,Huge Pages Usage (%%),Anonymous Huge Pages (kB),\
 Total Swap (kB),Swap Usage (%%),Uptime (days)\n\
 %s,%s,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%s" % (
             Hostname, FQDN, CPUMzTotal, CPUConsumption, CPUs,
