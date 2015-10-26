@@ -27,6 +27,6 @@ The CPU utilization is calculated by looking at the kernel informations provided
 These are amount of time that the system spent, _starting from the kernel boot_, in various states:
 user mode, user mode with low priority, system mode, idle task, waiting for I/O to complete...
 
-The file `/proc/meminfo` reports statistics about memory usage on the system and is parsed for 
-reporting the memory part of the output.
+The files `/proc/meminfo` and `/proc/swaps` are parsed for reporting the statistics about memory
+and swap usage.
 
