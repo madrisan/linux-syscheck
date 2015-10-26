@@ -9,9 +9,9 @@ $> ./syscheck.py
                  Hostname : myhost (myhost.mydomain.com)
              CPU Tot/Used : 25.8gHz / 53.67% (8CPU(s))
 Memory Tot/Used/Available : 15.6gB / 58.73% / 6.4gB
-       HugePages Tot/Used : 0 / 0.00% (HugePageSize: 2.0mB)
-            AnonHugePages : 1.9gB
-            Swap Tot/Used : 8.0gB / 0.00%
+      Huge Pages Tot/Used : 0 / 0.00% (HugePageSize: 2.0mB)
+     Anonymous Huge Pages : 2.0gB
+            Swap Tot/Used : 8.0gB / 0.15%
             System uptime : 7 days, 1:37:11.830000
 ```
 

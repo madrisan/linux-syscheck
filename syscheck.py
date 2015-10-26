@@ -236,10 +236,10 @@ Total Swap (kB),Swap Usage (%%),Uptime (days)\n\
             CPUConsumption, CPUs)
         print "Memory Tot/Used/Available : %s / %.2f%% / %s" % (
             _sizeof_fmt(MemTotal), MemoryUsedPerc, _sizeof_fmt(MemAvailable))
-        print "       HugePages Tot/Used : %d / %.2f%% (HugePageSize: %s)" % (
+        print "      Huge Pages Tot/Used : %d / %.2f%% (HugePageSize: %s)" % (
             MemHugePagesTotal, MemHugePagesUsagePerc,
             _sizeof_fmt(MemHugePageSize))
-        print "            AnonHugePages : %s" % _sizeof_fmt(MemAnonHugePages)
+        print "     Anonymous Huge Pages : %s" % _sizeof_fmt(MemAnonHugePages)
         print "            Swap Tot/Used : %s / %.2f%%" % (
             _sizeof_fmt(SwapTotal), SwapUsedPerc)
         print "            System uptime : %s" % SystemUptime
