@@ -5,7 +5,7 @@
 
 from __future__ import division
 
-import os, platform, socket, sys
+import glob, os, platform, socket, sys
 from datetime import timedelta
 
 __author__ = "Davide Madrisan"
@@ -63,6 +63,7 @@ def _cpu_count_logical():
     """Return the number of logical CPUs in the system."""
 
     try:
+        # get the number of online cores
         return os.sysconf("SC_NPROCESSORS_ONLN")
     except ValueError:
         # as a second fallback we try to parse /proc/cpuinfo
@@ -78,15 +79,38 @@ def _cpu_count_logical():
 
         return num
 
+def _cpu_offline():
+    """Return the number of CPU offline"""
+
+    PATH_SYS_SYSTEM = "/sys/devices/system"
+    PATH_SYS_CPU = PATH_SYS_SYSTEM + "/cpu"
+    # note that .../cpu0/online may not exist
+    fonline = glob.glob(PATH_SYS_CPU + '/cpu*/online')
+
+    num = 0
+    for f in fonline:
+        fp = open(f)
+        try:
+            online = fp.readline().strip()
+            if not online: num += 1
+        except:
+            pass
+    return num
+
 def check_cpu():
     """Return Total CPU MHz, current utilization and number of logical CPU"""
 
     CPUMzTotal = CPUUtilization = 0
+    cpu_physical_id = {}
     cpuinfo = _readfile('/proc/cpuinfo')
     for line in cpuinfo:
         cols = line.split(':')
         if cols[0].strip() == 'cpu MHz':
             CPUMzTotal += int(cols[1].split('.')[0])
+        elif cols[0].strip() == 'physical id':
+            cpu_physical_id[cols[1].strip()] = 'cpu id'
+
+    CPUsockets = len(cpu_physical_id)
 
     cpustat = _readfile('/proc/stat')
     for line in cpustat:
@@ -99,9 +123,10 @@ def check_cpu():
         Ratio = UserTot + SystemTot + Idle + IOWait + Steal
 
     CPUUtilization = _perc(Idle, Ratio, complement=True)
-    CPUNumber = _cpu_count_logical()
+    CPUs = _cpu_count_logical()
+    CPUsOffline = _cpu_offline()
 
-    return (CPUMzTotal, CPUUtilization, CPUNumber)
+    return (CPUMzTotal, CPUUtilization, CPUsockets, CPUs, CPUsOffline)
 
 def check_memory():
     """Return Total Memory, Memory Used and percent Utilization"""
@@ -205,7 +230,7 @@ def main():
     FQDN = socket.getfqdn()
 
     # CPU utilization
-    CPUMzTotal, CPUConsumption, CPUs = check_cpu()
+    CPUMzTotal, CPUUtilization, CPUsockets, CPUs, CPUsOffline = check_cpu()
 
     # Memory and Huge Memory utilization
     (MemTotal, MemUsed, MemoryUsedPerc, MemAvailable,
@@ -220,20 +245,23 @@ def main():
     SystemUptime, UpDays, UpHours, UpMinutes = check_uptime()
 
     if EnvCSVOutput:
-        print "Hostname,FQDN,CPU Total (MHz),CPU Consumption,CPUs,\
+        print "Hostname,FQDN,\
+CPU Total (MHz),CPU Utilization,CPU Sockets,CPUs,Offline CPUs,\
 Memory Total (kB),Memory Used (%%),Mem Available (kB),\
 Total Huge Pages,Huge Pages Usage (%%),Anonymous Huge Pages (kB),\
 Total Swap (kB),Swap Usage (%%),Uptime (days)\n\
-%s,%s,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%s" % (
-            Hostname, FQDN, CPUMzTotal, CPUConsumption, CPUs,
+%s,%s,%d,%.2f,%d,%d,%d,%d,%.2f,%d,%d,%.2f,%d,%d,%.2f,%s" % (
+            Hostname, FQDN,
+            CPUMzTotal, CPUUtilization, CPUsockets, CPUs, CPUsOffline,
             MemTotal, MemoryUsedPerc, MemAvailable,
             MemHugePagesTotal, MemHugePagesUsagePerc, MemAnonHugePages,
             SwapTotal, SwapUsedPerc, UpDays)
     else:
         print "                 Hostname : %s (%s)" % (Hostname, FQDN)
-        print "             CPU Tot/Used : %s / %.2f%% (%dCPU(s))" %(
-            _sizeof_fmt(CPUMzTotal, skip=2, suffix='Hz'),
-            CPUConsumption, CPUs)
+        print "             CPU Tot/Used : %s / %.2f%%" %(
+            _sizeof_fmt(CPUMzTotal, skip=2, suffix='Hz'), CPUUtilization)
+        print "         CPU Architecture : %d socket(s) / %d CPU(s) / "\
+              "%d offline" % (CPUsockets, CPUs, CPUsOffline)
         print "Memory Tot/Used/Available : %s / %.2f%% / %s" % (
             _sizeof_fmt(MemTotal), MemoryUsedPerc, _sizeof_fmt(MemAvailable))
         print "      Huge Pages Tot/Used : %d / %.2f%% (HugePageSize: %s)" % (
